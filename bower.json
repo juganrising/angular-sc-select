@@ -13,8 +13,7 @@
   "main": [
     "dist/sc-select.js",
     "dist/sc-select.min.js"
-  ]
-  
+  ],
   "moduleType": [
     "globals"
   ],

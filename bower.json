@@ -10,7 +10,11 @@
     "Jay Thomas"
   ],
   "description": "An opinionated wrapper around the ui-select module",
-  "main": "dist/sc-select.js",
+  "main": [
+    "dist/sc-select.js",
+    "dist/sc-select.min.js"
+  ]
+  
   "moduleType": [
     "globals"
   ],

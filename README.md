@@ -1,5 +1,4 @@
 # angular-sc-select
-[![Build Status](https://snap-ci.com/singlecomm/angular-sc-select/branch/master/build_image)](https://snap-ci.com/singlecomm/angular-sc-select/branch/master)
 
 This is a wrapper of the [ui-select](https://github.com/angular-ui/ui-select) directive that adds the following features:
 * Pagination between large lists of items

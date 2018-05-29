@@ -195,7 +195,16 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-	var template = '\n  <div ng-class="{ \'input-group select2-bootstrap-append\': vm.canToggleAll && vm.toggleAllEnabled !== false }">\n    <ui-select\n      class="form-control"\n      limit="{{ ::vm.multipleLimit }}"\n      ng-model="vm.selected"\n      ng-change="vm.modelChanged()"\n      ng-disabled="vm.ngDisabled"\n      search-enabled="vm.searchEnabled"\n      theme="select2">\n      <ui-select-match placeholder="{{ ::vm.placeholder }}">\n        {{ vm.getMappedItem($item || $select.selected) }}\n      </ui-select-match>\n      <ui-select-choices\n        repeat="item in vm.items | filter: $select.search"\n        refresh="vm.searchItems()"\n        refresh-delay="vm.refreshDelay || 200"\n        group-by="vm.groupBy">\n        <div ng-bind-html="vm.getMappedItem(item) | highlight: $select.search"></div>\n      </ui-select-choices>\n    </ui-select>\n    <span\n      class="input-group-btn"\n      ng-if="vm.canToggleAll && vm.toggleAllEnabled !== false">\n      <button\n        class="btn btn-default"\n        title="Adds all available options"\n        ng-click="vm.selectAll()"\n        type="button"\n        style="height: calc(100% + 14px)">\n        <i class="fa fa-check-square-o"></i>\n      </button>\n      <button\n        class="btn btn-default"\n        title="Removes all options"\n        ng-click="vm.deselectAll()"\n        type="button"\n        style="height: calc(100% + 14px)">\n        <i class="fa fa-square-o"></i>\n      </button>\n    </span>\n  </div>\n';
+	var template = 
+	'\n   <div ng-class="{ \'input-group select2-bootstrap-append\': vm.canToggleAll && vm.toggleAllEnabled !== false }">\n    ' +
+	'<ui-select\n      class="form-control"\n      limit="{{ ::vm.multipleLimit }}"\n      ng-model="vm.selected"\n      ' +
+	'ng-change="vm.modelChanged()"\n      ng-disabled="vm.ngDisabled"\n      search-enabled="vm.searchEnabled"\n      theme="select2">\n ' +
+	'     <ui-select-match placeholder="{{ ::vm.placeholder }}">\n     ' +
+	'   {{ vm.getMappedItem($item || $select.selected) }}\n' +
+	'      </ui-select-match>\n' +
+	'      <ui-select-choices\n ' +
+	'       repeat="item in vm.items track by $index"\n' +
+	'        refresh="vm.searchItems()"\n        refresh-delay="vm.refreshDelay || 200"\n        group-by="vm.groupBy">\n        <div ng-bind-html="vm.getMappedItem(item) | highlight: $select.search"></div>\n      </ui-select-choices>\n    </ui-select>\n    <span\n      class="input-group-btn"\n      ng-if="vm.canToggleAll && vm.toggleAllEnabled !== false">\n      <button\n        class="btn btn-default"\n        title="Adds all available options"\n        ng-click="vm.selectAll()"\n        type="button"\n        style="height: calc(100% + 14px)">\n        <i class="fa fa-check-square-o"></i>\n      </button>\n      <button\n        class="btn btn-default"\n        title="Removes all options"\n        ng-click="vm.deselectAll()"\n        type="button"\n        style="height: calc(100% + 14px)">\n        <i class="fa fa-square-o"></i>\n      </button>\n    </span>\n  </div>\n';
 
 	function scSelect() {
 
@@ -220,7 +229,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	      refreshDelay: '=',
 	      searchEnabled: '=',
 	      toggleAllEnabled: '=',
-	      totalItems: '='
+	      totalItems: '=',
+		  selectedItems: '=',
+		  initial: "=?",
+		  taggingFunc: "=?"
 	    },
 	    link: function link(scope, elm, attrs, ngModelCtrl) {
 	      scope.vm.setNgModelCtrl(ngModelCtrl);
@@ -266,7 +278,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	              page: vm.currentPage,
 	              searchText: vm.uiSelectCtrl.search
 	            })).then(function (items) {
-	              vm.items = items;
+				  if (vm.taggingFunc)
+					vm.items = vm.taggingFunc(vm.uiSelectCtrl.search, items);
+				  else
+					vm.items = items;
 	            }).finally(function () {
 	              vm.loading = false;
 	              $timeout.cancel(setLoadingTimeout);
@@ -294,17 +309,37 @@ return /******/ (function(modules) { // webpackBootstrap
 	      vm.ngModelCtrl = ngModelCtrl;
 
 	      ngModelCtrl.$render = function () {
-	        if (!ngModelCtrl.$viewValue) {
+	        if (!ngModelCtrl.$viewValue && !vm.initial) {
 	          return;
 	        }
 	        //var cc = vm.multiple ? ngModelCtrl.$viewValue : vm.items;
 	        var items;
-	        if (vm.multiple) {
+	        if (vm.multiple && vm.selected) {
 	          items = ngModelCtrl.$viewValue;
 	        } else {
 	          items = vm.items;
 	        }
 	        var matchingItems = [];
+			if ((!items || items.length === 0) && vm.initial) {
+				if (typeof (vm.initial) === "function") {
+					vm.initial()
+						.then(function (data) {
+							items = data;
+							matchingItems = items;
+							ngModelCtrl.$viewValue = matchingItems;
+
+							vm.setOrUpdateList(items, matchingItems);
+						});
+				} else {
+					items = vm.initial;
+					matchingItems = items;
+					ngModelCtrl.$viewValue = matchingItems;
+				}
+			}
+				vm.setOrUpdateList(items, matchingItems);
+			};
+
+			vm.setOrUpdateList = function (items, matchingItems){
 	        if (_angular2.default.isArray(items)) {
 	          matchingItems = items.filter(function (item) {
 	            var itemValue;
@@ -354,8 +389,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	        if (vm.multiple) {
 	          vm.selected = matchingItems;
+			  $scope.selectedItems = vm.selected;
 	        } else {
-	          vm.selected = matchingItems[0];
+			  if (!vm.initial) vm.ngModelCtrl.$render();
+			  else {
+				vm.modelChanged();
+			  }
 	        }
 	      };
 
@@ -395,7 +434,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return vm.ngModelCtrl.$modelValue;
 	    }, function (selected) {
 	      if (!selected) {
-	        vm.selected = vm.multiple ? [] : '';
+	        //vm.selected = vm.multiple ? [] : '';
 	      }
 	    }, true);
 
